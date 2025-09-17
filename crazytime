@@ -1,0 +1,55 @@
+a. requirements.txt
+python-telegram-bot==20.3
+
+b. main.py
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
+import random, os
+
+# Ambil token dari environment variable
+TOKEN = os.getenv("BOT_TOKEN")
+
+def analisis_crazytime(pola):
+    hasil = pola.upper().replace("-", " ").split()
+    bonus = [h for h in hasil if h in ["CP","CH","P","CT"]]
+    angka = [h for h in hasil if h in ["1","2","5","10"]]
+
+    analisis = []
+    analisis.append(f"📊 Total spin: {len(hasil)}")
+    analisis.append(f"🎯 Bonus muncul: {len(bonus)} kali → {bonus}")
+
+    if angka:
+        analisis.append(f"🔢 Angka dominan: {max(set(angka), key=angka.count)}")
+
+    if len(bonus) >= 2 and bonus[-1] in ["CP","CH"]:
+        prediksi = "➡ Potensi Pachinko (P) atau Crazy Time (CT) berikutnya!"
+    elif angka.count("1") > len(hasil)//2:
+        prediksi = "➡ Angka 1 terlalu sering, kemungkinan bonus sebentar lagi."
+    else:
+        prediksi = "➡ Bisa terjadi transisi ke Coin Flip (CP)."
+
+    feeling = random.choice([
+        "🔥 Feeling kuat ke bonus!",
+        "⚠️ Hati-hati jebakan angka kecil!",
+        "💰 Siap-siap multiplier gede!",
+        "⏳ Tunggu pola stabil dulu..."
+    ])
+
+    return "\n".join(analisis) + f"\n\nPrediksi: {prediksi}\n{feeling}"
+
+async def start(update: Update, context):
+    await update.message.reply_text("Halo BOSKU! 🚀 Kirim pola Crazy Time (contoh: 1 1 2 CH 5 5 P) buat aku analisis.")
+
+async def handle_message(update: Update, context):
+    pola = update.message.text
+    hasil = analisis_crazytime(pola)
+    await update.message.reply_text(hasil)
+
+def main():
+    app = Application.builder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
